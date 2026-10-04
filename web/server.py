@@ -24,10 +24,9 @@ PHYSICS = {
         ("motor_right", "Right motor", .95, 1.05, .01, "×"),
     ],
     "pendulum": [
-        ("gravity", "Gravity", 9., 11., .1, "m/s²"),
-        ("mass", "Mass", .9, 1.1, .01, "kg"),
-        ("length", "Length", .95, 1.05, .01, "m"),
-        ("damping", "Damping", 0., .4, .02, "1/s"),
+        ("gravity", "Gravity", 7., 15., .1, "m/s²"),
+        ("mass", "Mass", .7, 1.3, .01, "kg"),
+        ("length", "Length", .90, 1.1, .01, "m"),
     ],
 }
 
