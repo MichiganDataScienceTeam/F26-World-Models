@@ -1,0 +1,8 @@
+name: world-models
+channels:
+  - defaults
+dependencies:
+  - python=3.14.8
+  - pip
+  - pip:
+      - -r requirements.txt

@@ -1,0 +1,43 @@
+:root { color-scheme: light; --accent: #1155cc; --ink: #222; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #fff; color: var(--ink); font: 13px/1.5 monospace; }
+main { max-width: 1500px; margin: 0 auto; padding: 24px; }
+button, select, input { font: inherit; color: inherit; }
+button, select { background: #fff; border: 1px solid var(--ink); border-radius: 0; padding: 4px 9px; }
+button { cursor: pointer; }
+button:hover, button:focus-visible { color: var(--accent); border-color: var(--accent); }
+button:disabled { opacity: .4; cursor: default; }
+
+.toolbar { display: flex; gap: 14px; align-items: center; padding-bottom: 18px; }
+.toolbar label { display: flex; gap: 10px; align-items: center; }
+#clock { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.layout { display: grid; grid-template-columns: 195px minmax(0, 1fr); gap: 32px; }
+aside { padding-top: 4px; }
+aside > button { display: block; margin-bottom: 10px; }
+.toggle-row { display: flex; align-items: center; gap: 9px; margin-top: 14px; font-size: 11px; }
+.square-toggle { width: 16px; height: 16px; flex: 0 0 16px; padding: 0; }
+.square-toggle[aria-pressed=true] { background: var(--accent); border-color: var(--accent); }
+.slider-label { display: block; margin: 0 0 22px; }
+.slider-label output { display: block; font-size: 11px; font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; display: block; margin: 5px 0 0; accent-color: var(--accent); }
+
+.comparison { min-width: 0; }
+.views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+h2 { font: inherit; margin: 0 0 10px; }
+.views canvas { width: 100%; height: 280px; display: block; }
+.status { font-size: 11px; }
+
+.plot { margin-top: 28px; }
+.plot-labels { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.legend { display: flex; gap: 20px; font-size: 11px; }
+.legend span::before { content: ""; display: inline-block; width: 18px; border-top: 2px solid var(--ink); margin-right: 6px; vertical-align: middle; }
+.legend .bayes::before { border-color: var(--accent); }
+.legend .oracle::before { border-top-style: dashed; }
+#chart { display: block; width: 100%; height: 240px; }
+
+#message { color: var(--ink); margin: 0 0 16px; }
+[hidden] { display: none !important; }
+
+@media (max-width: 900px) { main { padding: 16px; } .layout { grid-template-columns: 155px minmax(0, 1fr); gap: 18px; } .views { gap: 10px; } .views canvas { height: 230px; } }
+@media (max-width: 650px) { .layout { display: block; } #physics { display: flex; gap: 16px; overflow-x: auto; } .slider-label { min-width: 130px; margin-bottom: 12px; } aside { margin-bottom: 22px; } .toolbar { flex-wrap: wrap; gap: 10px; } .views { grid-template-columns: 1fr; } .views canvas { height: 240px; } }

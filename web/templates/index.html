@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World models</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='playground.js') }}"></script>
+</head>
+<body>
+  <main>
+    <div class="toolbar">
+      <label>Environment
+        <select id="environment">
+          <option value="drone">Drone</option>
+          <option value="pendulum">Pendulum</option>
+        </select>
+      </label>
+      <button id="play" disabled>Play</button>
+      <button id="reset" disabled>Reset</button>
+      <span id="clock">0.00 s</span>
+    </div>
+    <div id="message" role="status" hidden></div>
+
+    <div class="layout">
+      <aside>
+        <div id="physics"></div>
+        <button id="restore" disabled>Restore settings</button>
+        <button id="reset-posterior" disabled>Reset posterior</button>
+        <div class="toggle-row">
+          <button id="reset-on-change" class="square-toggle" type="button" aria-label="Reset posterior on change" aria-pressed="false" disabled></button>
+          <span>Reset posterior on change</span>
+        </div>
+      </aside>
+      <div class="comparison">
+        <div class="views">
+          {% for mode, label in [("frozen", "Frozen"), ("bayes", "Bayesian"), ("oracle", "Oracle")] %}
+          <section>
+            <h2>{{ label }}</h2>
+            <canvas id="{{ mode }}" aria-label="{{ label }} world model"></canvas>
+            <span id="{{ mode }}-status" class="status"></span>
+          </section>
+          {% endfor %}
+        </div>
+
+        <section class="plot">
+          <div class="plot-labels">
+            <h2 title="One-step prediction error before adaptation, using each controller's own transitions.">World-model MSE</h2>
+            <div class="legend"><span class="frozen">Frozen</span><span class="bayes">Bayesian</span><span class="oracle">Oracle</span></div>
+          </div>
+          <canvas id="chart" aria-label="World model mean squared prediction error"></canvas>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
