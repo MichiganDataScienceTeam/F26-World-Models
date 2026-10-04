@@ -7,7 +7,26 @@ This is a research-flavored project focused on developing and characterizing a (
 | **Week** | **Slides** | **Topics** | **Links** |
 | --- | --- | --- | --- |
 | 1 (9/27) | [Link](https://docs.google.com/presentation/d/11jPirH876BQy64SwzO0AYqlBr41xKZAsl3MtRCoDHVc/edit?usp=sharing) | Motivation, Foundations, Setup | --- |
+| 2 (10/4) | [Link](https://docs.google.com/presentation/d/1WcVyPNqlrA2RvPb_LqLWh4jT0WLA7IZf61mfYfWomtY/edit?usp=sharing) | MPC, Regressions, and Adaptation | --- |
 
+## Web Demo Instructions
+
+Activate your virtual env first, then run:
+
+```sh
+python -m web
+```
+
+## Code Layout
+
+```text
+envs/                  drone and pendulum environments; batched true dynamics
+models/world_model.py  pretrained MLP and checkpoint loader
+models/pretrained/     drone.pt and pendulum.pt
+control/               CEM optimizer and MPC controllers
+adaptation/            BLR stubs and AdaptiveWorldModel residual composition
+web/                   Flask server and canvas interface
+```
 
 ## AI Recommendations
 
@@ -24,3 +43,9 @@ As a result, I will provide only *recommendations* for how you should use AI to 
 ## Contact
 
 Jeffrey Lu - `lujeff [at] umich [dot] edu`
+
+## Acknowledgements
+
+This project is supported by compute resources provided by [MIDAS](https://midas.umich.edu/), [U-M ARC High Performance Computing](https://its.umich.edu/advanced-research-computing).
+
+This project is run through the [Michigan Data Science Team](https://mdst.club) in the Fall 2026 term.
