@@ -25,7 +25,7 @@ def minimize(score, mean, std, *, population=256, elites=24, iterations=5,
     for _ in range(iterations):
         noise = rng.normal(size=(population, noise_steps, mean.shape[1]))
         if interpolation is not None:
-            noise = np.einsum("hk,nkd->nhd", interpolation, noise)
+            noise = interpolation @ noise
 
         proposals = mean + std*noise
         if broad_std is not None:

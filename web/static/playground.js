@@ -156,7 +156,8 @@ function drawPendulum(mode) {
   if (!run.active) return;
 
   const cx = width / 2, cy = height / 2;
-  const radius = Math.min((height - 24) / 2.2, (width - 24) / 2.2) * state.physics.length;
+  const scale = Math.min(height - 24, width - 24) / 2.6;
+  const radius = scale * state.physics.length;
   const point = theta => [cx + radius * Math.sin(theta), cy - radius * Math.cos(theta)];
   line(ctx, run.predicted_path.map(row => point(Math.atan2(row[1], row[0]))), ink, 1, [3, 4]);
   goal(ctx, ...point(0));
@@ -164,7 +165,8 @@ function drawPendulum(mode) {
   const tip = point(run.physical_state[0]);
   line(ctx, [[cx, cy], tip], ink, 2);
   ctx.fillStyle = ink;
-  ctx.beginPath(); ctx.arc(...tip, 6, 0, 2 * Math.PI); ctx.fill();
+  const bobRadius = 6 * Math.sqrt(state.physics.gravitational_force / 10);
+  ctx.beginPath(); ctx.arc(...tip, bobRadius, 0, 2 * Math.PI); ctx.fill();
   ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 2 * Math.PI); ctx.fill();
 }
 

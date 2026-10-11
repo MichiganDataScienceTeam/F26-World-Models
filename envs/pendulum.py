@@ -15,12 +15,15 @@ class PendulumPhysics:
     mass: float = 1.0
     length: float = 1.0
     damping: float = 0.0  # angular damping
+    torque_bias: float = 0.0
 
     def __post_init__(self):
         for name in ("gravity", "mass", "length", "damping"):
             value = getattr(self, name)
             if not np.isfinite(value) or value < 0 or (name in ("mass", "length") and value == 0):
                 raise ValueError(f"Invalid {name}")
+        if not np.isfinite(self.torque_bias):
+            raise ValueError("Invalid torque_bias")
 
 
 class PendulumEnv(gym.Env):
@@ -78,7 +81,7 @@ class PendulumEnv(gym.Env):
         torque = np.clip(action[..., 0], -self.max_torque, self.max_torque)
 
         acceleration = (3*p.gravity/(2*p.length)*np.sin(theta)
-                        + 3*torque/(p.mass*p.length**2) - p.damping*obs[..., 2])
+                        + 3*(torque + p.torque_bias)/(p.mass*p.length**2) - p.damping*obs[..., 2])
         velocity = np.clip(obs[..., 2] + self.dt*acceleration, -self.max_speed, self.max_speed)
         theta = theta + self.dt*velocity
         return np.stack((np.cos(theta), np.sin(theta), velocity), axis=-1)

@@ -1,5 +1,4 @@
 from collections import deque
-from dataclasses import replace
 from threading import Lock
 
 import numpy as np
@@ -11,35 +10,10 @@ from control import make_mpc, PlanningError
 from envs import make, DronePhysics, DroneSimulation, DroneTask, PendulumPhysics
 from models import load_pretrained
 
+from .settings import CONTROLS, control_values, update_physics
+
 WINDOW = 400
 MODES = ("frozen", "bayes", "oracle")
-
-# key, label, min, max, step, unit
-PHYSICS = {
-    "drone": [
-        ("mass", "Mass", .9, 1.1, .01, "kg"),
-        ("gravity", "Gravity", 9., 10.5, .01, "m/s²"),
-        ("force_x", "Horizontal force", -.3, .3, .02, "N"),
-        ("motor_left", "Left motor", .95, 1.05, .01, "×"),
-        ("motor_right", "Right motor", .95, 1.05, .01, "×"),
-    ],
-    "pendulum": [
-        ("gravity", "Gravity", 7., 15., .1, "m/s²"),
-        ("mass", "Mass", .7, 1.3, .01, "kg"),
-        ("length", "Length", .90, 1.1, .01, "m"),
-    ],
-}
-
-
-def physics_values(environment, physics):
-    values = {key: getattr(physics, key) for key in ("mass", "gravity")}
-    if environment == "drone":
-        values.update(force_x=physics.external_force[0],
-                      motor_left=physics.motor_efficiency[0],
-                      motor_right=physics.motor_efficiency[1])
-    else:
-        values.update(length=physics.length, damping=physics.damping)
-    return values
 
 
 class Run:
@@ -67,7 +41,7 @@ class Run:
             self.model = AdaptiveWorldModel(frozen, correction, output_scale=scale)
         self.controller = make_mpc(self.env, self.model, seed=0)
 
-        self.trace = deque(maxlen=WINDOW)
+        self.trace = deque(maxlen=WINDOW) if environment == "drone" else None
         self.remaining_plan = deque()
         self.predicted_path = []
         self.status = ""
@@ -137,7 +111,8 @@ class Run:
             except NotImplementedError:
                 self.disable()
                 return None
-        self.trace.append(self.env.state[:2].tolist())
+        if self.trace is not None:
+            self.trace.append(self.env.state[:2].tolist())
         return mse
 
     def state(self):
@@ -145,7 +120,7 @@ class Run:
             "physical_state": self.env.state.tolist(),
             "predicted_path": self.predicted_path,
             "target": self.env.target.tolist() if hasattr(self.env, "target") else None,
-            "trace": list(self.trace),
+            "trace": list(self.trace) if self.trace is not None else [],
             "status": self.status,
             "active": self.active,
         }
@@ -156,13 +131,13 @@ class Playground:
         self.models = {}
         self.worlds = {"drone": DronePhysics(), "pendulum": PendulumPhysics()}
         self.environment = "drone"
-        self.reset_on_change = False
+        self.reset_on_change = True
         self.runs = {}
         self.reset()
 
     def reset(self, environment=None):
         name = self.environment if environment is None else environment
-        if name not in PHYSICS:
+        if name not in CONTROLS:
             raise ValueError("Choose drone or pendulum")
 
         if name not in self.models:
@@ -178,25 +153,7 @@ class Playground:
     def set_physics(self, values, reset_on_change=None):
         if reset_on_change is not None and not isinstance(reset_on_change, bool):
             raise ValueError("reset_on_change must be a boolean")
-        limits = {key: (low, high) for key, _, low, high, *_ in PHYSICS[self.environment]}
-        if not isinstance(values, dict) or set(values) - limits.keys():
-            raise ValueError("Unknown physics parameter")
-
-        settings = physics_values(self.environment, self.worlds[self.environment])
-        for key, value in values.items():
-            value = float(value)
-            low, high = limits[key]
-            if not np.isfinite(value) or not low <= value <= high:
-                raise ValueError(f"{key} is outside the slider range")
-            settings[key] = value
-
-        current = self.worlds[self.environment]
-        if self.environment == "drone":
-            physics = replace(current, mass=settings["mass"], gravity=settings["gravity"],
-                              external_force=(settings["force_x"], current.external_force[1]),
-                              motor_efficiency=(settings["motor_left"], settings["motor_right"]))
-        else:
-            physics = replace(current, **settings)
+        physics = update_physics(self.environment, self.worlds[self.environment], values)
 
         if reset_on_change is not None:
             self.reset_on_change = reset_on_change
@@ -234,8 +191,8 @@ class Playground:
             "environment": self.environment,
             "dt": self.runs["frozen"].env.dt,
             "time": self.time,
-            "physics": physics_values(self.environment, self.worlds[self.environment]),
-            "physics_controls": PHYSICS[self.environment],
+            "physics": control_values(self.environment, self.worlds[self.environment]),
+            "physics_controls": CONTROLS[self.environment],
             "reset_on_change": self.reset_on_change,
             "runs": {mode: run.state() for mode, run in self.runs.items()},
             "history": list(self.history),
