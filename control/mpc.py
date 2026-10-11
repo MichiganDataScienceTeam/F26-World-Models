@@ -207,14 +207,58 @@ class PendulumMPC:
         return self.plan[0].copy()
 
 
+class PusherMPC:
+    """CEM over bounded force and tangential-speed sequences."""
+
+    def __init__(self, env, predict, horizon=40, population=128, elites=16, iterations=4, seed=0):
+        if horizon < 2:
+            raise ValueError("horizon must be at least 2")
+        self.env, self.transition = env, predict
+        self.horizon, self.population = horizon, population
+        self.elites, self.iterations = elites, iterations
+        self.rng = np.random.default_rng(seed)
+        self.mean = np.tile([.8, 0.], (horizon, 1))
+        self.plan = self.predicted_states = None
+
+    def score(self, observation, actions, return_path=False):
+        state = np.broadcast_to(observation, (len(actions), 7)).copy()
+        costs = np.zeros(len(actions))
+        path = [state.copy()] if return_path else None
+        for t in range(self.horizon):
+            costs += self.env.dt * self.env.cost(state, actions[:, t])
+            state = self.env.project(self.transition(state, actions[:, t]))
+            if return_path:
+                path.append(state.copy())
+        costs += self.env.cost(state, np.zeros((len(actions), 2)))
+        costs[~np.isfinite(costs)] = np.inf
+        return (costs, np.stack(path, 1)) if return_path else costs
+
+    def predict(self, observation):
+        best, mean = minimize(
+            lambda actions: self.score(observation, actions), self.mean,
+            np.broadcast_to([.6, .2], self.mean.shape), population=self.population,
+            elites=self.elites, iterations=self.iterations, lower=self.env.action_low,
+            upper=self.env.action_high, rng=self.rng)
+        candidates = np.stack((best, mean))
+        costs, paths = self.score(observation, candidates, return_path=True)
+        best = int(np.argmin(costs))
+        if not np.isfinite(costs[best]):
+            raise PlanningError("MPC found no finite plan")
+        self.plan, self.predicted_states = candidates[best], paths[best]
+        self.mean = np.concatenate((self.plan[1:], self.plan[-1:]))
+        return self.plan[0].copy()
+
+
 def make_mpc(env, model=None, seed=0):
     """Use the supplied model, or the environment's oracle when model is None."""
 
-    from envs import DroneEnv, PendulumEnv
+    from envs import DroneEnv, PendulumEnv, PusherEnv
 
     transition = env.predict if model is None else model.predict
     if isinstance(env, DroneEnv):
         return DroneMPC(transition, dt=env.dt, task=env.task, seed=seed)
     if isinstance(env, PendulumEnv):
         return PendulumMPC(env, transition, seed=seed)
+    if isinstance(env, PusherEnv):
+        return PusherMPC(env, transition, seed=seed)
     raise TypeError("No planner configuration for this environment")

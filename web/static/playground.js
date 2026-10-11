@@ -2,7 +2,7 @@
 
 const $ = id => document.getElementById(id);
 const ink = "#222222", accent = "#1155cc";
-const modes = ["frozen", "bayes", "oracle"];
+const modes = ["frozen", "bayes", "gp", "oracle"];
 
 let state = null;
 let running = false, runToken = 0;
@@ -170,6 +170,40 @@ function drawPendulum(mode) {
   ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 2 * Math.PI); ctx.fill();
 }
 
+function drawPusher(mode) {
+  const {ctx, width, height} = canvas(mode), run = state.runs[mode];
+  if (!run.active) return;
+  const scale = Math.min((width - 20) / 2.4, (height - 40) / 2.2);
+  const point = (x, y) => [width / 2 + (x - .2) * scale, height / 2 - y * scale];
+  const {center, width: patchWidth} = state.patch;
+  for (const x of [center - patchWidth, center + patchWidth]) {
+    line(ctx, [point(x, -1.1), point(x, 1.1)], ink, 1, [2, 5]);
+  }
+  ctx.fillStyle = ink;
+  ctx.fillText("Rough patch", 4, 12);
+  ctx.fillText("Smooth edges", 4, height - 4);
+
+  const block = ([x, y, theta], color) => {
+    const [px, py] = point(x, y);
+    ctx.save(); ctx.translate(px, py); ctx.rotate(-theta);
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    ctx.strokeRect(-.2 * scale, -.3 * scale, .4 * scale, .6 * scale);
+    ctx.restore();
+  };
+  block(run.target, accent);
+  ctx.globalAlpha = .25;
+  line(ctx, run.trace.map(row => point(...row)));
+  ctx.globalAlpha = 1;
+  line(ctx, run.predicted_path.map(row => point(row[0], row[1])), ink, 1, [3, 4]);
+  block(run.physical_state, ink);
+
+  const [x, y, theta, contact] = run.physical_state;
+  const cx = x - .22 * Math.cos(theta) - contact * Math.sin(theta);
+  const cy = y - .22 * Math.sin(theta) + contact * Math.cos(theta);
+  ctx.fillStyle = ink;
+  ctx.beginPath(); ctx.arc(...point(cx, cy), Math.max(3, .025 * scale), 0, 2 * Math.PI); ctx.fill();
+}
+
 function drawChart() {
   const {ctx, width, height} = canvas("chart"), rows = state.history;
   const left = 68, right = width - 8, top = 10, bottom = height - 24;
@@ -194,8 +228,9 @@ function drawChart() {
   ctx.fillText(`${t1.toFixed(1)} s`, right - 45, height - 5);
 
   for (const mode of modes) {
-    const color = mode === "bayes" ? accent : ink, width = mode === "bayes" ? 1.7 : 1.2;
-    const dash = mode === "oracle" ? [4, 4] : [];
+    const color = ["bayes", "gp"].includes(mode) ? accent : ink;
+    const width = ["bayes", "gp"].includes(mode) ? 1.7 : 1.2;
+    const dash = mode === "oracle" || mode === "gp" ? [4, 4] : [];
     let segment = [];
 
     for (const row of rows) {
@@ -212,7 +247,7 @@ function drawChart() {
 
 function draw() {
   if (!state) return;
-  const drawEnvironment = state.environment === "drone" ? drawDrone : drawPendulum;
+  const drawEnvironment = {drone: drawDrone, pendulum: drawPendulum, pusher: drawPusher}[state.environment];
   modes.forEach(drawEnvironment);
   drawChart();
 }

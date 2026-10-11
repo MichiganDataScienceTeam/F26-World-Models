@@ -23,7 +23,7 @@ aside > button { display: block; margin-bottom: 10px; }
 input[type=range] { width: 100%; display: block; margin: 5px 0 0; accent-color: var(--accent); }
 
 .comparison { min-width: 0; }
-.views { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.views { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 h2 { font: inherit; margin: 0 0 10px; }
 .views canvas { width: 100%; height: 280px; display: block; }
 .status { font-size: 11px; }
@@ -33,6 +33,7 @@ h2 { font: inherit; margin: 0 0 10px; }
 .legend { display: flex; gap: 20px; font-size: 11px; }
 .legend span::before { content: ""; display: inline-block; width: 18px; border-top: 2px solid var(--ink); margin-right: 6px; vertical-align: middle; }
 .legend .bayes::before { border-color: var(--accent); }
+.legend .gp::before { border-color: var(--accent); border-top-style: dashed; }
 .legend .oracle::before { border-top-style: dashed; }
 #chart { display: block; width: 100%; height: 240px; }
 

@@ -7,22 +7,23 @@ from torch import nn
 from envs.common import broadcast_inputs
 
 PRETRAINED = Path(__file__).parent / "pretrained"
+DIMENSIONS = {"drone": (6, 9), "pendulum": (3, 4), "pusher": (4, 7)}
 
 
 class WorldModel(nn.Module):
     """forward predicts normalized changes; predict returns next observations.
 
-    The drone target passes through unchanged and is excluded from the inputs.
+    Targets pass through unchanged and are excluded from the inputs.
     """
 
     def __init__(self, environment, width=64):
         super().__init__()
-        if environment not in ("drone", "pendulum"):
-            raise ValueError("environment must be drone or pendulum")
+        if environment not in DIMENSIONS:
+            raise ValueError(f"Choose {', '.join(DIMENSIONS)}")
 
         self.environment = environment
         self.width = width
-        self.state_size, input_size = (6, 9) if environment == "drone" else (3, 4)
+        self.state_size, input_size = DIMENSIONS[environment]
         self.net = nn.Sequential(
             nn.Linear(input_size, width), nn.Tanh(),
             nn.Linear(width, width), nn.Tanh(),
@@ -35,17 +36,29 @@ class WorldModel(nn.Module):
         self.register_buffer("residual_rms", torch.zeros(self.state_size))
 
     def input_features(self, observations, actions):
-        sizes, action_size = ((6, 8), 2) if self.environment == "drone" else ((3,), 1)
+        sizes, action_size = {"drone": ((6, 8), 2), "pendulum": ((3,), 1),
+                              "pusher": ((4, 7), 2)}[self.environment]
         obs, action = broadcast_inputs(observations, actions, sizes, action_size)
 
         if self.environment == "drone":
             action = np.clip(action, 0, 1)
             return np.concatenate((obs[..., :2], np.sin(obs[..., 2:3]), np.cos(obs[..., 2:3]),
                                    obs[..., 3:6], action), axis=-1)
+        if self.environment == "pusher":
+            from envs.pusher import PusherEnv
+
+            action = np.clip(action, PusherEnv.action_low, PusherEnv.action_high)
+            return np.concatenate((obs[..., :2], np.sin(obs[..., 2:3]), np.cos(obs[..., 2:3]),
+                                   obs[..., 3:4], action), axis=-1)
         return np.concatenate((obs, np.clip(action, -2, 2)), axis=-1)
 
     def forward(self, raw_features):
         return self.net((raw_features - self.xm) / self.xs)
+
+    def normalized_features(self, observations, actions):
+        """Normalized state/action inputs, excluding the target."""
+
+        return (self.input_features(observations, actions) - self.xm.cpu().numpy()) / self.xs.cpu().numpy()
 
     def _next_observation(self, observations, delta):
         obs = np.asarray(observations)
@@ -99,11 +112,11 @@ class WorldModel(nn.Module):
 
 
 def load_pretrained(environment):
-    if environment not in ("drone", "pendulum"):
-        raise ValueError("environment must be drone or pendulum")
+    if environment not in DIMENSIONS:
+        raise ValueError(f"Choose {', '.join(DIMENSIONS)}")
     path = PRETRAINED / f"{environment}.pt"
     if not path.is_file():
-        raise FileNotFoundError(f"No {environment} checkpoint. Run python -m pretraining.pendulum")
+        raise FileNotFoundError(f"No {environment} checkpoint. Run python -m pretraining.{environment}")
 
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
     if checkpoint.get("environment", environment) != environment:

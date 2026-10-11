@@ -14,6 +14,7 @@
         <select id="environment">
           <option value="drone">Drone</option>
           <option value="pendulum">Pendulum</option>
+          <option value="pusher">Pusher</option>
         </select>
       </label>
       <button id="play" disabled>Play</button>
@@ -34,7 +35,7 @@
       </aside>
       <div class="comparison">
         <div class="views">
-          {% for mode, label in [("frozen", "Frozen"), ("bayes", "Bayesian"), ("oracle", "Oracle")] %}
+          {% for mode, label in [("frozen", "Frozen"), ("bayes", "Bayesian"), ("gp", "GP"), ("oracle", "Oracle")] %}
           <section>
             <h2>{{ label }}</h2>
             <canvas id="{{ mode }}" aria-label="{{ label }} world model"></canvas>
@@ -46,7 +47,7 @@
         <section class="plot">
           <div class="plot-labels">
             <h2 title="One-step prediction error before adaptation, using each controller's own transitions.">World-model MSE</h2>
-            <div class="legend"><span class="frozen">Frozen</span><span class="bayes">Bayesian</span><span class="oracle">Oracle</span></div>
+            <div class="legend"><span class="frozen">Frozen</span><span class="bayes">Bayesian</span><span class="gp">GP</span><span class="oracle">Oracle</span></div>
           </div>
           <canvas id="chart" aria-label="World model mean squared prediction error"></canvas>
         </section>

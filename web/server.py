@@ -5,48 +5,63 @@ import numpy as np
 import torch
 from flask import Flask, jsonify, render_template, request
 
-from adaptation import AdaptiveWorldModel, BayesianLinearRegression
+from adaptation import AdaptiveWorldModel, BayesianLinearRegression, GaussianProcessRegression
 from control import make_mpc, PlanningError
-from envs import make, DronePhysics, DroneSimulation, DroneTask, PendulumPhysics
+from envs import make, DronePhysics, DroneSimulation, DroneTask, PendulumPhysics, PusherPhysics
 from models import load_pretrained
 
 from .settings import CONTROLS, control_values, update_physics
 
 WINDOW = 400
-MODES = ("frozen", "bayes", "oracle")
+MODES = ("frozen", "bayes", "gp", "oracle")
+DEFAULT_PHYSICS = {"drone": DronePhysics(), "pendulum": PendulumPhysics(),
+                   "pusher": PusherPhysics(patch_strength=1., patch_center=.1)}
 
 
 class Run:
-    def __init__(self, environment, mode, physics, frozen):
+    def __init__(self, environment, mode, physics, frozen, seed=0):
         if environment == "drone":
             self.env = make(environment, physics=physics,
                             simulation=DroneSimulation(max_steps=None),
                             task=DroneTask(terminate_on_bounds=False))
             initial = [-.7, 1.2, .05, 0., 0., 0.]
             self.action = np.array([.4905, .4905])
-        else:
+        elif environment == "pendulum":
             self.env = make(environment, physics=physics, max_steps=None)
             initial = [.25, 0.]
             self.action = np.zeros(1)
-        self.env.reset(seed=0, options={"state": initial})
+        else:
+            self.env = make(environment, physics=physics, max_steps=None)
+            initial = self.env.initial_state
+            self.action = np.zeros(2)
+        self.env.reset(seed=seed, options={"state": initial})
 
         self.mode = mode
         self.state_size = frozen.state_size
         self.model = frozen if mode == "frozen" else self.env
-        if mode == "bayes":
+        if mode in ("bayes", "gp"):
             scale = frozen.ys.detach().cpu().numpy().astype(float)
-            noise_std = np.maximum(frozen.residual_rms.detach().cpu().numpy() / scale, 1e-4)
-            correction = BayesianLinearRegression(frozen.width + 1, frozen.state_size,
-                                                  prior_std=.1, noise_std=noise_std)
-            self.model = AdaptiveWorldModel(frozen, correction, output_scale=scale)
-        self.controller = make_mpc(self.env, self.model, seed=0)
+            noise_std = np.maximum(frozen.residual_rms.detach().cpu().numpy() / scale, .025)
+            features = None
 
-        self.trace = deque(maxlen=WINDOW) if environment == "drone" else None
+            if mode == "gp":
+                correction = GaussianProcessRegression(
+                    frozen.xm.numel(), frozen.state_size, prior_std=2., noise_std=noise_std)
+                features = frozen.normalized_features
+            else:
+                correction = BayesianLinearRegression(frozen.width + 1, frozen.state_size,
+                                                      prior_std=.1, noise_std=noise_std)
+
+            self.model = AdaptiveWorldModel(frozen, correction, feature_fn=features, output_scale=scale)
+        self.seed = seed
+        self.controller = make_mpc(self.env, self.model, seed=seed)
+
+        self.trace = deque(maxlen=WINDOW) if environment in ("drone", "pusher") else None
         self.remaining_plan = deque()
         self.predicted_path = []
         self.status = ""
         self.active = True
-        if mode == "bayes":
+        if mode in ("bayes", "gp"):
             try:
                 self.model.predict(self.env.observation, self.action)
             except NotImplementedError:
@@ -58,7 +73,7 @@ class Run:
 
     def reset_posterior(self):
         self.model.reset()
-        self.controller = make_mpc(self.env, self.model, seed=0)
+        self.controller = make_mpc(self.env, self.model, seed=self.seed)
         self.invalidate_plan()
 
     def disable(self):
@@ -105,7 +120,7 @@ class Run:
         residual = prediction[..., :self.state_size] - next_observation[..., :self.state_size]
         mse = float(np.mean(residual**2))
 
-        if self.mode == "bayes":
+        if self.mode in ("bayes", "gp"):
             try:
                 self.model.partial_fit(observation, action, next_observation)
             except NotImplementedError:
@@ -129,20 +144,20 @@ class Run:
 class Playground:
     def __init__(self):
         self.models = {}
-        self.worlds = {"drone": DronePhysics(), "pendulum": PendulumPhysics()}
+        self.worlds = DEFAULT_PHYSICS.copy()
         self.environment = "drone"
         self.reset_on_change = True
         self.runs = {}
         self.reset()
 
-    def reset(self, environment=None):
+    def reset(self, environment=None, seed=0):
         name = self.environment if environment is None else environment
         if name not in CONTROLS:
-            raise ValueError("Choose drone or pendulum")
+            raise ValueError(f"Choose {', '.join(CONTROLS)}")
 
         if name not in self.models:
             self.models[name] = load_pretrained(name)
-        runs = {mode: Run(name, mode, self.worlds[name], self.models[name]) for mode in MODES}
+        runs = {mode: Run(name, mode, self.worlds[name], self.models[name], seed=seed) for mode in MODES}
         for run in self.runs.values():
             run.env.close()
 
@@ -171,10 +186,11 @@ class Playground:
             self.reset_posterior()
 
     def reset_posterior(self):
-        self.runs["bayes"].reset_posterior()
+        for mode in ("bayes", "gp"):
+            self.runs[mode].reset_posterior()
 
     def restore(self):
-        self.apply_physics(DronePhysics() if self.environment == "drone" else PendulumPhysics())
+        self.apply_physics(DEFAULT_PHYSICS[self.environment])
 
     def step(self):
         prepared = {mode: run.prepare() for mode, run in self.runs.items()}
@@ -193,6 +209,9 @@ class Playground:
             "time": self.time,
             "physics": control_values(self.environment, self.worlds[self.environment]),
             "physics_controls": CONTROLS[self.environment],
+            "patch": ({"center": self.worlds["pusher"].patch_center,
+                       "width": self.worlds["pusher"].patch_width}
+                      if self.environment == "pusher" else None),
             "reset_on_change": self.reset_on_change,
             "runs": {mode: run.state() for mode, run in self.runs.items()},
             "history": list(self.history),
