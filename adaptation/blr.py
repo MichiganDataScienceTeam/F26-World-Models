@@ -5,7 +5,7 @@ class BayesianLinearRegression:
     """Independent Gaussian weight posteriors for each output.
 
     coef_[j] and sigma_[j] hold the mean and covariance for output j.
-    Include a constant feature for an intercept. Implement partial_fit and predict.
+    Include a constant feature for an intercept.
     """
 
     def __init__(self, n_features, n_outputs=1, prior_std=1., noise_std=1.):
@@ -37,7 +37,25 @@ class BayesianLinearRegression:
         A single output also accepts y (samples,). Return self.
         """
 
-        raise NotImplementedError("Implement BayesianLinearRegression.partial_fit")
+        X = np.atleast_2d(np.asarray(X, dtype=float))
+        y = np.asarray(y, dtype=float)
+        if self.n_outputs == 1 and y.ndim <= 1:
+            y = y.reshape(-1, 1)
+        elif y.ndim == 1:
+            y = y[None, :]
+
+        noise_variance = self.noise_std**2
+        for features, target in zip(X, y):
+            covariance_feature = self.sigma_ @ features
+            prediction_variance = noise_variance + features @ covariance_feature.T
+            gain = covariance_feature / prediction_variance[:, None]
+            prediction_error = target - self.coef_ @ features
+
+            self.coef_ += gain * prediction_error[:, None]
+            self.sigma_ -= gain[:, :, None] * covariance_feature[:, None, :]
+            self.n_samples_seen_ += 1
+
+        return self
 
     def predict(self, X, return_std=False, include_noise=True):
         """Return means, or (means, standard deviations), for X (..., features).
@@ -46,4 +64,22 @@ class BayesianLinearRegression:
         include_noise adds observation noise to the uncertainty.
         """
 
-        raise NotImplementedError("Implement BayesianLinearRegression.predict")
+        X = np.asarray(X, dtype=float)
+
+        mean = X @ self.coef_.T
+
+        if return_std:
+            variance = np.empty_like(mean)
+            for output, covariance in enumerate(self.sigma_):
+                variance[..., output] = np.sum(X * (X @ covariance), axis=-1)
+            variance = np.maximum(variance, 0)
+            if include_noise:
+                variance += self.noise_std**2
+            std = np.sqrt(variance)
+
+        if self.n_outputs == 1:
+            mean = mean[..., 0]
+            if return_std:
+                std = std[..., 0]
+
+        return (mean, std) if return_std else mean
