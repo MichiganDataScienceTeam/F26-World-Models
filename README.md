@@ -18,19 +18,6 @@ Activate your virtual env first, then run:
 python -m web
 ```
 
-Select **Pusher → Load pusher demo → Play**. The rectangle must reach the blue
-target pose with a 90° rotation. A rough patch resists both translation and
-rotation. BLR and GP start empty and learn only from their own live transitions;
-there are no calibration samples. The frozen model was trained on nominal physics
-across all orientations. The planner is unchanged.
-
-Reset clears adaptation and preserves physics. Restore settings returns to nominal
-physics. Load pusher demo repeats the same setup. Dotted lines mark the patch center
-± one width; its effect fades smoothly beyond them. **Rotation resistance** changes
-how hard the rectangle is to turn independently of the patch.
-
-See [the live-only comparison](results/pusher/online/RESULTS.md).
-
 ## Code Layout
 
 ```text
@@ -40,8 +27,6 @@ models/pretrained/     frozen model checkpoints
 control/               CEM optimizer and MPC controllers
 adaptation/            BLR, Gaussian processes, and residual composition
 web/                   Flask server and canvas interface
-experiments/pusher.py   matched prediction and MPC comparisons
-results/pusher/        measurements, uncertainty plots, and demo
 ```
 
 ## AI Recommendations
@@ -65,18 +50,3 @@ Jeffrey Lu - `lujeff [at] umich [dot] edu`
 This project is supported by compute resources provided by [MIDAS](https://midas.umich.edu/), [U-M ARC High Performance Computing](https://its.umich.edu/advanced-research-computing).
 
 This project is run through the [Michigan Data Science Team](https://mdst.club) in the Fall 2026 term.
-
-## Gaussian Process Adapter
-
-`GaussianProcessRegression` implements `partial_fit`, `predict`, and `reset`, like BLR.
-Pass it to `AdaptiveWorldModel`; choose neural features or a `feature_fn` such as
-`model.normalized_features`. The prior mean is zero, so an untouched adapter uses the frozen prediction.
-
-The default GP keeps 256 recent observations. Set `max_samples=None` to retain all data.
-`time_length=np.inf` models constant dynamics; a finite value adds exponential temporal decay.
-Querying the model never advances its clock. The pusher demo uses the stationary GP;
-changing settings resets both posteriors when the existing toggle is enabled.
-
-The pusher uses a rectangular slider with guided contact, a quadratic limit surface,
-and Coulomb sticking/sliding. It omits inertia, impacts, and contact loss; it is not PushT.
-See [the live-only comparison](results/pusher/online/RESULTS.md).
