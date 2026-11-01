@@ -10,6 +10,7 @@ This is a research-flavored project focused on developing and characterizing a (
 | 2 (10/4) | [Link](https://docs.google.com/presentation/d/1WcVyPNqlrA2RvPb_LqLWh4jT0WLA7IZf61mfYfWomtY/edit?usp=sharing) | MPC, Regressions, and Adaptation | --- |
 | 3 (10/11) | [Link](https://docs.google.com/presentation/d/1jeAcyVg2q30lpXUzTK76EUS8XmZMtOgwKyLqO6Gk_II/edit?usp=sharing) | Regressions, GPs, Updates | --- |
 | 4 (10/25) | [Link](https://docs.google.com/presentation/d/1_sY0fG_Mu9--29XvuMfoCI3FlWeiJGjqlFjz_dkhR8s/edit?usp=sharing) | Review, Intuitions, and Mini-Lab | --- |
+| 5 (11/1) | [Link](https://docs.google.com/presentation/d/1EZSAOiGSM9t3la0XYAK4GeGybgxR94EwoQmJ2jJRtC0/edit?usp=sharing) | Changes, Evidence, and Occam’s Razor |
 
 ## Web Demo Instructions
 
