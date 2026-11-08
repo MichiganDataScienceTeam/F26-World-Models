@@ -11,6 +11,7 @@ This is a research-flavored project focused on developing and characterizing a (
 | 3 (10/11) | [Link](https://docs.google.com/presentation/d/1jeAcyVg2q30lpXUzTK76EUS8XmZMtOgwKyLqO6Gk_II/edit?usp=sharing) | Regressions, GPs, Updates | --- |
 | 4 (10/25) | [Link](https://docs.google.com/presentation/d/1_sY0fG_Mu9--29XvuMfoCI3FlWeiJGjqlFjz_dkhR8s/edit?usp=sharing) | Review, Intuitions, and Mini-Lab | --- |
 | 5 (11/1) | [Link](https://docs.google.com/presentation/d/1EZSAOiGSM9t3la0XYAK4GeGybgxR94EwoQmJ2jJRtC0/edit?usp=sharing) | Changes, Evidence, and Occam’s Razor |
+| 6 (11/8) | [Link](https://docs.google.com/presentation/d/1O9m_ha-1cWqtlqhiYn-KkYSLUstzFoDqXuqNht9n-6Q/edit?usp=sharing) | More on evidence and walker |
 
 ## Web Demo Instructions
 
