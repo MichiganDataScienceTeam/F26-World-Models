@@ -13,6 +13,7 @@ This is a research-flavored project focused on developing and characterizing a (
 | 5 (11/1) | [Link](https://docs.google.com/presentation/d/1EZSAOiGSM9t3la0XYAK4GeGybgxR94EwoQmJ2jJRtC0/edit?usp=sharing) | Changes, Evidence, and Occam’s Razor |
 | 6 (11/8) | [Link](https://docs.google.com/presentation/d/1O9m_ha-1cWqtlqhiYn-KkYSLUstzFoDqXuqNht9n-6Q/edit?usp=sharing) | More on evidence and walker |
 | 7 (11/15) | [Link](https://docs.google.com/presentation/d/1f8gIQwBk1XiB3Vt1iVxcHFuqCZJdRY7wrmD5Z2Ee7Gs/edit?usp=sharing) | Logistics, architecture, and cars |
+| 8 (11/22) | [Link](https://docs.google.com/presentation/d/1Xs4laW3lbz99H7WE39CmLtL3-yVSMHlSCceo6rwn0wc/edit?usp=sharing) | Updates, logistics, and evaluation |
 
 ## Code Layout
 
